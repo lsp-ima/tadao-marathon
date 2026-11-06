@@ -67,6 +67,17 @@ tr.cx td{color:var(--muted);text-decoration:line-through}
       <div class="muted" id="dl-state" style="margin-top:6px"></div>
     </div>
 
+    <div class="card">
+      <h2>全員へのお知らせ</h2>
+      <textarea id="nt" rows="3" style="width:100%;box-sizing:border-box;font:inherit;padding:8px" placeholder="例 雨のため中止します。"></textarea>
+      <div class="row" style="margin-top:6px">
+        <button class="pri" id="nt-send">載せてスマホに通知</button>
+        <button id="nt-save">載せるだけ</button>
+        <button id="nt-clear">消す</button>
+      </div>
+      <div class="muted" id="nt-state" style="margin-top:6px"></div>
+    </div>
+
     <div class="tabs">
       <button data-tab="sum" class="on">集計</button>
       <button data-tab="list">名簿</button>
@@ -105,7 +116,7 @@ tr.cx td{color:var(--muted);text-decoration:line-through}
 <script src="common.js"></script>
 <script>
 const PK = 'marathon-admin-pass';
-let pass = '', rows = [], conf = {};
+let pass = '', rows = [], conf = {}, notice = '', pushCount = 0;
 const schoolKey = r => r['所属'].indexOf('その他') === 0 ? 'その他' : r['所属'];
 const live = () => rows.filter(r => r['状態'] === '申込');
 
@@ -114,7 +125,7 @@ try { pass = sessionStorage.getItem(PK) || ''; } catch (e) {}
 
 async function load(){
   const r = await api('admin_list', { pass });
-  rows = r.rows; conf = r.conf;
+  rows = r.rows; conf = r.conf; notice = conf.notice || ''; pushCount = r.pushCount || 0;
   try { sessionStorage.setItem(PK, pass); } catch (e) {}
   $('#login').classList.add('hide'); $('#main').classList.remove('hide');
   render();
@@ -136,6 +147,10 @@ function render(){
 
   $('#dl').value = conf.deadline || '';
   $('#dl-state').textContent = conf.deadline ? (conf.open ? '受付中。締切を過ぎると申込画面は自動で閉じます。' : '締切を過ぎたので、申込画面は閉じています。') : '締切は未設定です(受付中)。';
+
+  $('#nt').value = notice;
+  $('#nt-state').textContent = (notice ? 'マイページの一番上と、LINEで「お知らせ」と送ったときに出ています。' : '今はお知らせはありません。')
+    + ` 通知を受け取る端末: ${pushCount}台`;
 
   // レース別
   $('#sum-race').innerHTML = '<table><tr><th>レース</th><th class="n">男子</th><th class="n">女子</th><th class="n">計</th></tr>'
@@ -194,6 +209,18 @@ async function saveDeadline(v){
 }
 $('#dl-save').onclick = () => { if ($('#dl').value) saveDeadline($('#dl').value); };
 $('#dl-clear').onclick = () => saveDeadline('');
+
+async function saveNotice(text, push){
+  if (push && !confirm(`通知を受け取る${pushCount}台のスマホに送ります。よろしいですか?\n\n${text}`)) return;
+  try {
+    const r = await api('admin_notice', { pass, text, push });
+    notice = r.notice; render();
+    if (push) alert(`${r.sent}台に送りました。` + (r.gone ? `(通知をやめた${r.gone}台は宛先から外しました)` : ''));
+  } catch (e) { alert(e.message); }
+}
+$('#nt-send').onclick = () => { const t = $('#nt').value.trim(); if (t) saveNotice(t, true); };
+$('#nt-save').onclick = () => { const t = $('#nt').value.trim(); if (t) saveNotice(t, false); };
+$('#nt-clear').onclick = () => { if (confirm('お知らせを消しますか?')) saveNotice('', false); };
 
 function save(name, blob){
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;

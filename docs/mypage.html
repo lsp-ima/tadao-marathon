@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>忠生マラソン祭り マイページ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="忠生マラソン">
 <style>
 :root{
   --bg:#f4f6f9; --card:#fff; --line:#e3e8ef; --ink:#1c2530; --muted:#6b7785;
@@ -77,6 +81,12 @@ label.f{display:block;margin-top:12px;font-size:14px;font-weight:600}
   <div id="main" class="hide">
     <div id="notice" class="notice hide"><b>お知らせ</b><p id="notice-text"></p></div>
     <div id="kids"></div>
+    <div class="card hide" id="push-card">
+      <h2>お知らせをスマホに通知</h2>
+      <p class="hint">雨で中止のときなど、実行委員会からのお知らせがスマホに届きます。</p>
+      <button class="btn" id="push-btn">通知を受け取る</button>
+      <p class="hint hide" id="push-ios">iPhoneは先にこのページを<b>ホーム画面に追加</b>してください。Safariの共有ボタン(□↑)→「ホーム画面に追加」。ホーム画面のアイコンから開いて、申込番号と電話番号で一度開いたあと、このボタンを押します。</p>
+    </div>
     <p class="hint" style="text-align:center;margin-top:10px">当日は、学校・所属ごとの受付で名前と学年を伝えてください。</p>
 
     <div class="card">
@@ -180,7 +190,7 @@ function render(d){
   $('#info').innerHTML = `<dt>開催日時</dt><dd>${tbd(I.date)}</dd><dt>集合時間</dt><dd>${tbd(I.gather)}</dd>
     <dt>会場</dt><dd>${tbd(I.place)}</dd>
     <dt>距離</dt><dd>小学1・2年 ${tbd(I.dist.low)}<br>小学3〜6年 ${tbd(I.dist.mid)}<br>中学生・成人 ${tbd(I.dist.high)}</dd>
-    <dt>雨の日</dt><dd>${tbd(I.rain)}</dd>`;
+    <dt>雨の日</dt><dd>${tbd(I.rain)}<br><span class="hint">中止のときは、このページの一番上の「お知らせ」と、スマホの通知でお伝えします。</span></dd>`;
   $('#faq-cancel').textContent = I.canCancel
     ? 'この画面の「この人の参加を取り消す」からできます。'
     : 'キャンセルの受付は終了しました。LINEでご連絡ください。';
@@ -199,9 +209,51 @@ $('#kids').addEventListener('click', async e => {
   catch (err) { alert(err.message); b.disabled = false; }
 });
 
+// ---------- スマホ通知(忠生アプリと同じしくみ。Firebase経由) ----------
+const PUSH_VAPID = 'BFsITK_M4Z3_6iueTX9-CB3_TX7bf22j22woIeSFxTt8rHdszdDuLXSH1RBlqPNSuJrrZC6Vefmr0U9stNtxNWs';
+const PUSH_FB = { apiKey: 'AIzaSyC51hie7DO70yUuhwlVxSTboqkDkuh6NfI', authDomain: 'fluted-result-472023-k0.firebaseapp.com',
+  projectId: 'fluted-result-472023-k0', storageBucket: 'fluted-result-472023-k0.firebasestorage.app',
+  messagingSenderId: '833223935802', appId: '1:833223935802:web:2623863b5c10260b65b203' };
+const loadJs = src => new Promise((ok, ng) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ng; document.head.appendChild(s); });
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+const pushOk = () => 'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
+const pushOn = () => !!ls.get('push') && 'Notification' in window && Notification.permission === 'granted';
+async function pushToken(){
+  if (!(window.firebase && firebase.messaging)) {
+    await loadJs('https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js');
+    await loadJs('https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js');
+  }
+  if (!firebase.apps.length) firebase.initializeApp(PUSH_FB);
+  const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+  await navigator.serviceWorker.ready;
+  return firebase.messaging().getToken({ vapidKey: PUSH_VAPID, serviceWorkerRegistration: reg });
+}
+function pushUI(){
+  const iosNeedHome = isIOS && !standalone;
+  $('#push-card').classList.toggle('hide', pushOn() || (!pushOk() && !iosNeedHome));
+  $('#push-ios').classList.toggle('hide', !iosNeedHome);
+  $('#push-btn').classList.toggle('hide', iosNeedHome);
+}
+$('#push-btn').onclick = async () => {
+  const b = $('#push-btn'); b.disabled = true;
+  try {
+    if (await Notification.requestPermission() !== 'granted') throw new Error('通知が許可されませんでした。スマホの設定で通知をオンにしてください。');
+    const t = await pushToken();
+    await api('push_save', { token: t });
+    ls.set('push', t); pushUI(); alert('通知をオンにしました。');
+  } catch (err) { alert(err.message || '通知の設定に失敗しました'); }
+  b.disabled = false;
+};
+// 通知オン済みの端末は、開いたときに端末トークンが変わっていないか確かめる
+async function pushRefresh(){
+  try { if (!pushOn()) return; const t = await pushToken();
+        if (t && t !== ls.get('push')) { await api('push_save', { token: t }); ls.set('push', t); } } catch (e) {}
+}
+
 async function load(){
   show('loading');
-  try { render(await api('mypage', { token })); offerFace(); }
+  try { render(await api('mypage', { token })); offerFace(); pushUI(); setTimeout(pushRefresh, 3000); }
   catch (err) { ls.set('token', ''); token = ''; $('#l-err').textContent = err.message; show('login'); }
 }
 
