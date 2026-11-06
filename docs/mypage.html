@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>忠生マラソン祭り マイページ</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --line:#e3e8ef; --ink:#1c2530; --muted:#6b7785;
+  --accent:#1e5aa8; --accent-soft:#e8f0fb; --ng:#c0392b; --ok:#1f8b53; --line-green:#06c755;
+  --radius:14px; --shadow:0 1px 2px rgba(16,32,55,.06),0 6px 20px rgba(16,32,55,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+header{padding:20px 4px 4px}
+header h1{margin:0;font-size:22px}
+header p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 16px;margin-top:14px}
+.card h2{margin:0 0 12px;font-size:17px}
+.kid{text-align:center}
+.kid .name{font-size:20px;font-weight:700}
+.kid .meta{color:var(--muted);font-size:14px}
+.kid .race{display:inline-block;margin-top:8px;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:14px;font-weight:600}
+.kid .dist{font-size:14px;margin-top:6px}
+.hint{color:var(--muted);font-size:13px}
+.state{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:999px;font-size:14px;font-weight:700}
+.state.cx{background:#f1f2f4;color:var(--muted)}
+.state.in{background:#e6f5ec;color:var(--ok)}
+.kid.cancelled .name,.kid.cancelled .meta{color:var(--muted)}
+.cancel{margin-top:12px;border:0;background:none;color:var(--ng);font-size:14px;text-decoration:underline}
+dl{margin:0;display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:8px 10px;font-size:15px}
+dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
+.tbd{color:var(--muted)}
+dl.faq{display:block}
+.faq dt{color:var(--ink);font-weight:700;margin-top:10px}
+.faq dt:first-child{margin-top:0}
+.faq dd{margin-top:2px}
+.btn{display:block;width:100%;margin-top:14px;padding:15px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:17px;font-weight:700;text-align:center;text-decoration:none}
+.btn.line{background:var(--line-green)}
+.btn.sub{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:600}
+input{width:100%;margin-top:4px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px}
+label.f{display:block;margin-top:12px;font-size:14px;font-weight:600}
+.err{color:var(--ng);font-size:14px;margin-top:10px}
+.foot{margin-top:22px;text-align:center;font-size:13px;color:var(--muted)}
+.foot button{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:13px}
+.notice{background:#fff8e1;border:1px solid #f0c36d;border-radius:var(--radius);padding:14px 16px;margin-top:14px}
+.notice b{display:block;margin-bottom:4px}
+.notice p{margin:0;white-space:pre-line}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1 id="title">忠生マラソン祭り</h1><p>マイページ</p></header>
+
+  <div id="loading" class="card">読み込み中…</div>
+
+  <!-- Face ID で開く -->
+  <div id="lock" class="card hide" style="text-align:center">
+    <h2>マイページを開く</h2>
+    <button class="btn" id="face-btn">Face ID・指紋で開く</button>
+    <button class="btn sub" id="face-skip">申込番号と電話番号で開く</button>
+  </div>
+
+  <!-- 別の端末・機種変更 -->
+  <form id="login" class="card hide">
+    <h2>申込番号と電話番号で開く</h2>
+    <label class="f">申込番号<input id="l-group" autocapitalize="characters" autocomplete="off" placeholder="例 YCFUUDUY"></label>
+    <label class="f">申込のときの電話番号<input id="l-tel" type="tel" inputmode="tel"></label>
+    <div class="err" id="l-err"></div>
+    <button class="btn">開く</button>
+    <p class="hint">申込番号は、申込のあとに表示された8文字です。</p>
+  </form>
+
+  <div id="main" class="hide">
+    <div id="notice" class="notice hide"><b>お知らせ</b><p id="notice-text"></p></div>
+    <div id="kids"></div>
+    <p class="hint" style="text-align:center;margin-top:10px">当日は、学校・所属ごとの受付で名前と学年を伝えてください。</p>
+
+    <div class="card">
+      <h2>大会のご案内</h2>
+      <dl id="info"></dl>
+    </div>
+
+    <div class="card">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>駐車場はありますか?</dt>
+        <dd>大会専用の駐車場はありません。公園の駐車場は混み合うため、ご利用はご遠慮ください。近くのお店への駐車もご遠慮ください。</dd>
+        <dt>キャンセルしたい</dt>
+        <dd id="faq-cancel"></dd>
+        <dt>ほかに聞きたいことがある</dt>
+        <dd>下のボタンからLINEでお送りください。</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>LINEで質問する</h2>
+      <p class="hint" id="line-note"></p>
+      <a class="btn line" id="line-btn" target="_blank" rel="noopener">LINEを開く</a>
+    </div>
+
+    <div class="foot">
+      申込番号 <b id="group"></b><br>
+      <button id="logout">この端末からマイページを外す</button>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+// 端末に覚えておくもの(本人の端末だけ)
+const ls = {
+  get: k => { try { return localStorage.getItem('mr_' + k) || ''; } catch (e) { return ''; } },
+  set: (k, v) => { try { v ? localStorage.setItem('mr_' + k, v) : localStorage.removeItem('mr_' + k); } catch (e) {} },
+};
+let token = '';
+const show = id => ['loading','lock','login','main'].forEach(x => $('#'+x).classList.toggle('hide', x !== id));
+
+// ---------- Face ID・指紋(照合は端末の中だけ。顔や指紋のデータは送らない) ----------
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer;
+const faceOk = () => !!(window.PublicKeyCredential && window.isSecureContext);
+async function offerFace(){
+  if (ls.get('face') || ls.get('face_no') || !faceOk()) return;
+  let ok = false; try { ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) {}
+  if (!ok || !confirm('次からFace ID・指紋でマイページを開けるようにしますか?\n顔や指紋のデータが送られることはありません。')) { ls.set('face_no', '1'); return; }
+  try {
+    const c = await navigator.credentials.create({ publicKey: { challenge: rnd(32), rp: { name: '忠生マラソン祭り' },
+      user: { id: rnd(16), name: 'tadao-marathon', displayName: '忠生マラソン祭り 保護者' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } });
+    ls.set('face', b64(c.rawId));
+  } catch (e) { ls.set('face_no', '1'); }
+}
+$('#face-btn').onclick = async () => {
+  try { await navigator.credentials.get({ publicKey: { challenge: rnd(32), userVerification: 'required', timeout: 60000,
+          allowCredentials: [{ type: 'public-key', id: unb64(ls.get('face')), transports: ['internal'] }] } }); }
+  catch (e) { return alert('確認できませんでした。もう一度お試しいただくか、申込番号と電話番号で開いてください。'); }
+  load();
+};
+$('#face-skip').onclick = () => { ls.set('face', ''); show('login'); };
+
+// ---------- 申込番号と電話番号で開く ----------
+$('#login').onsubmit = async e => {
+  e.preventDefault(); $('#l-err').textContent = '';
+  try {
+    const r = await api('login', { group: $('#l-group').value, tel: $('#l-tel').value });
+    token = r.token; ls.set('token', token); ls.set('face_no', ''); load();
+  } catch (err) { $('#l-err').textContent = err.message; }
+};
+$('#logout').onclick = () => {
+  if (!confirm('この端末からマイページを外しますか?\n申込は取り消されません。申込番号と電話番号でまた開けます。')) return;
+  ['token','face','face_no'].forEach(k => ls.set(k, '')); token = ''; show('login');
+};
+
+// ---------- 表示 ----------
+const tbd = v => v ? esc(v) : '<span class="tbd">後日お知らせします</span>';
+function render(d){
+  $('#title').textContent = d.eventName;
+  $('#group').textContent = d.group;
+  const I = d.info;
+  $('#notice').classList.toggle('hide', !I.notice);
+  $('#notice-text').textContent = I.notice || '';
+  $('#kids').innerHTML = d.kids.map(k => {
+    const cx = k.state === 'キャンセル';
+    return `<div class="card kid${cx ? ' cancelled' : ''}">
+      <div class="name">${esc(k.name)}</div>
+      <div class="meta">${esc(k.school)} ・ ${esc(gradeLabel(k.grade))} ・ ${esc(k.sex)}</div>
+      <div class="race">${esc(k.race)}</div>
+      <div class="dist">距離 ${tbd(distOf(k.grade, I.dist))}</div>
+      ${cx ? '<div class="state cx">キャンセル済み</div>'
+           : `${k.checkedIn ? '<div class="state in">受付済み</div>' : ''}
+              ${I.canCancel && !k.checkedIn ? `<div><button class="cancel" data-code="${esc(k.code)}" data-name="${esc(k.name)}">この人の参加を取り消す</button></div>` : ''}`}
+    </div>`;
+  }).join('');
+  $('#info').innerHTML = `<dt>開催日時</dt><dd>${tbd(I.date)}</dd><dt>集合時間</dt><dd>${tbd(I.gather)}</dd>
+    <dt>会場</dt><dd>${tbd(I.place)}</dd>
+    <dt>距離</dt><dd>小学1・2年 ${tbd(I.dist.low)}<br>小学3〜6年 ${tbd(I.dist.mid)}<br>中学生・成人 ${tbd(I.dist.high)}</dd>
+    <dt>雨の日</dt><dd>${tbd(I.rain)}</dd>`;
+  $('#faq-cancel').textContent = I.canCancel
+    ? 'この画面の「この人の参加を取り消す」からできます。'
+    : 'キャンセルの受付は終了しました。LINEでご連絡ください。';
+  const lineId = I.line || '';
+  $('#line-btn').href = 'https://line.me/R/oaMessage/' + encodeURIComponent(lineId) + '/?' + encodeURIComponent(d.linked ? '' : '連携 ' + d.link);
+  $('#line-note').textContent = d.linked
+    ? 'この申込とLINEはつながっています。質問をそのまま送ってください。'
+    : '初めての方は、LINEで友だち追加をして、入っているメッセージをそのまま送信してください。この申込とLINEがつながり、質問にお答えできるようになります。';
+  show('main');
+}
+$('#kids').addEventListener('click', async e => {
+  const b = e.target.closest('.cancel'); if (!b) return;
+  if (!confirm(b.dataset.name + 'さんの参加を取り消します。よろしいですか?')) return;
+  b.disabled = true;
+  try { render(await api('cancel', { token, code: b.dataset.code })); }
+  catch (err) { alert(err.message); b.disabled = false; }
+});
+
+async function load(){
+  show('loading');
+  try { render(await api('mypage', { token })); offerFace(); }
+  catch (err) { ls.set('token', ''); token = ''; $('#l-err').textContent = err.message; show('login'); }
+}
+
+(() => {
+  // 申込直後は #t=トークン で来る。端末に覚えてURLからは消す
+  const m = location.hash.match(/t=([A-Za-z0-9]+)/);
+  if (m) { ls.set('token', m[1]); history.replaceState(null, '', location.pathname); }
+  token = (m && m[1]) || ls.get('token');
+  if (!token) return show('login');
+  if (ls.get('face') && !m) return show('lock');
+  load();
+})();
+</script>
+</body>
+</html>
