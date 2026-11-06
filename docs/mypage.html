@@ -180,8 +180,9 @@ function render(d){
     return `<div class="card kid${cx ? ' cancelled' : ''}">
       <div class="name">${esc(k.name)}</div>
       <div class="meta">${esc(k.school)} ・ ${esc(gradeLabel(k.grade))} ・ ${esc(k.sex)}</div>
-      <div class="race">${esc(k.race)}</div>
-      <div class="dist">距離 ${tbd(distOf(k.grade, I.dist))}</div>
+      ${k.race ? `<div class="race">${esc(k.race)}</div>
+      <div class="dist">距離 ${tbd(k.dist)}${k.start ? ` ・ ${esc(k.start)}スタート` : ''}</div>`
+        : '<div class="dist tbd">レース・距離・スタート時刻は、申込締切のあとにお知らせします</div>'}
       ${cx ? '<div class="state cx">キャンセル済み</div>'
            : `${k.checkedIn ? '<div class="state in">受付済み</div>' : ''}
               ${I.canCancel && !k.checkedIn ? `<div><button class="cancel" data-code="${esc(k.code)}" data-name="${esc(k.name)}">この人の参加を取り消す</button></div>` : ''}`}
@@ -189,7 +190,7 @@ function render(d){
   }).join('');
   $('#info').innerHTML = `<dt>開催日時</dt><dd>${tbd(I.date)}</dd><dt>集合時間</dt><dd>${tbd(I.gather)}</dd>
     <dt>会場</dt><dd>${tbd(I.place)}</dd>
-    <dt>距離</dt><dd>小学1・2年 ${tbd(I.dist.low)}<br>小学3〜6年 ${tbd(I.dist.mid)}<br>中学生・成人 ${tbd(I.dist.high)}</dd>
+    <dt>レース</dt><dd>${I.racePub && I.races.length ? I.races.map(x => `${esc(x.name)}(${esc(x.grades.join('・'))}${x.sex && x.sex !== '男女' ? ' ' + esc(x.sex) : ''})${x.dist ? ' ' + esc(x.dist) : ''}${x.start ? ' ' + esc(x.start) : ''}`).join('<br>') : '<span class="tbd">申込締切のあとに2次要項でお知らせします</span>'}</dd>
     <dt>雨の日</dt><dd>${tbd(I.rain)}<br><span class="hint">中止のときは、このページの一番上の「お知らせ」と、スマホの通知でお伝えします。</span></dd>`;
   $('#faq-cancel').textContent = I.canCancel
     ? 'この画面の「この人の参加を取り消す」からできます。'

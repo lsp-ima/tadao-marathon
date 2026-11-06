@@ -116,7 +116,7 @@ tr.cx td{color:var(--muted);text-decoration:line-through}
 <script src="common.js"></script>
 <script>
 const PK = 'marathon-admin-pass';
-let pass = '', rows = [], conf = {}, notice = '', pushCount = 0;
+let pass = '', rows = [], conf = {}, notice = '', pushCount = 0, races = [];
 const schoolKey = r => r['所属'].indexOf('その他') === 0 ? 'その他' : r['所属'];
 const live = () => rows.filter(r => r['状態'] === '申込');
 
@@ -125,7 +125,7 @@ try { pass = sessionStorage.getItem(PK) || ''; } catch (e) {}
 
 async function load(){
   const r = await api('admin_list', { pass });
-  rows = r.rows; conf = r.conf; notice = conf.notice || ''; pushCount = r.pushCount || 0;
+  rows = r.rows; conf = r.conf; notice = conf.notice || ''; pushCount = r.pushCount || 0; races = r.races || [];
   try { sessionStorage.setItem(PK, pass); } catch (e) {}
   $('#login').classList.add('hide'); $('#main').classList.remove('hide');
   render();
@@ -154,9 +154,9 @@ function render(){
 
   // レース別
   $('#sum-race').innerHTML = '<table><tr><th>レース</th><th class="n">男子</th><th class="n">女子</th><th class="n">計</th></tr>'
-    + RACES.map(rc => { const x = L.filter(r => r['レース'] === rc);
-        return `<tr><td>${rc}</td><td class="n">${x.filter(r => r['性別'] === '男子').length}</td><td class="n">${x.filter(r => r['性別'] === '女子').length}</td><td class="n"><b>${x.length}</b></td></tr>`; }).join('')
-    + '</table>';
+    + races.map(rc => { const x = L.filter(r => r['レース'] === rc);
+        return `<tr><td>${esc(rc)}</td><td class="n">${x.filter(r => r['性別'] === '男子').length}</td><td class="n">${x.filter(r => r['性別'] === '女子').length}</td><td class="n"><b>${x.length}</b></td></tr>`; }).join('')
+    + '</table><div class="muted" style="margin-top:6px">' + (conf.racePub ? '保護者に発表中です。' : '保護者にはまだ見せていません。') + 'レースの分け方は「レース表」シート、発表は「設定」シートの レース発表 で切り替えます。</div>';
 
   // 学校・団体別 × 学年 × 性別
   $('#sum-school').innerHTML = SCHOOLS.map(s => {
@@ -173,7 +173,7 @@ function render(){
   const fs = $('#f-school'), fr = $('#f-race');
   if (fs.options.length === 1) {
     SCHOOLS.forEach(s => fs.add(new Option(s, s)));
-    RACES.forEach(s => fr.add(new Option(s, s)));
+    races.forEach(s => fr.add(new Option(s, s)));
   }
   renderList();
 }

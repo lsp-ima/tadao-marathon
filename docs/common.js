@@ -5,22 +5,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbx-ZXPFpu72evAXNjRTN2dk
 const SCHOOLS = ['図師小','忠生小','山崎小','忠生中','ライオンズ','成人','その他'];
 const GRADES  = ['小1','小2','小3','小4','小5','小6','中1','中2','中3'];
 const GRADE_ORDER = GRADES.concat(['成人']);
-const RACES = ['第1レース 小1・2年 男子','第2レース 小1・2年 女子','第3レース 小3・4年 男子',
-               '第4レース 小3・4年 女子','第5レース 小5・6年 男女合同','第6レース 中学生・成人 男女混合'];
-
-function raceOf(grade, sex){
-  const n = { '小1':1,'小2':1,'小3':3,'小4':3,'小5':5,'小6':5 }[grade];
-  if (!grade || (!sex && n !== 5 && n)) return '';
-  if (n === 1) return sex === '男子' ? RACES[0] : RACES[1];
-  if (n === 3) return sex === '男子' ? RACES[2] : RACES[3];
-  if (n === 5) return RACES[4];
-  return RACES[5];
-}
-// 学年から距離の欄を選ぶ(値は「設定」シートの 距離 ◯◯)
-function distOf(grade, dist){
-  const n = { '小1':'low','小2':'low','小3':'mid','小4':'mid','小5':'mid','小6':'mid' }[grade] || 'high';
-  return (dist && dist[n]) || '';
-}
 function gradeLabel(g){ return g === '成人' ? '成人' : g.replace('小','小学').replace('中','中学') + '年'; }
 function toKata(s){ return String(s || '').replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)); }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
@@ -62,7 +46,7 @@ function mockApi(b){
         const grade = k.school === '成人' ? '成人' : k.grade;
         return { '受付コード': rnd(6), '申込番号': group, '申込日時': now,
           '所属': k.school === 'その他' ? 'その他(' + k.schoolOther + ')' : k.school,
-          '氏名': k.name, 'フリガナ': toKata(k.kana), '学年': grade, '性別': k.sex, 'レース': raceOf(grade, k.sex),
+          '氏名': k.name, 'フリガナ': toKata(k.kana), '学年': grade, '性別': k.sex, 'レース': '',
           '保護者氏名': g.name, '保護者フリガナ': toKata(g.kana), '電話': g.tel.replace(/[^\d]/g, ''), 'メール': g.email,
           '状態': '申込', 'キャンセル日時': '', '受付日時': '', token, link };
       });
@@ -76,7 +60,7 @@ function mockApi(b){
       if (!mine.length) throw new Error('申込が見つかりません。申込番号と電話番号で開き直してください');
       if (b.action === 'cancel') { const r = mine.find(r => r['受付コード'] === b.code); r['状態'] = 'キャンセル'; r['キャンセル日時'] = new Date().toLocaleString('ja-JP'); save(); }
       return { ok: true, eventName: '忠生マラソン祭り', group: mine[0]['申込番号'], guardian: mine[0]['保護者氏名'], link: mine[0].link, linked: false,
-        info: { notice: '3月6日(土)の大会は予定どおり行います。集合時間は2月中にお知らせします。', date: '', gather: '', place: '忠生スポーツ公園', rain: '', line: '@958pbsjm', dist: { low: '2周(1.0km)', mid: '3周(1.5km)', high: '' }, canCancel: true },
+        info: { notice: '3月6日(土)の大会は予定どおり行います。集合時間は2月中にお知らせします。', date: '', gather: '', place: '忠生スポーツ公園', rain: '', line: '@958pbsjm', racePub: false, races: [], canCancel: true },
         kids: mine.map(r => ({ code: r['受付コード'], name: r['氏名'], school: r['所属'], grade: r['学年'], sex: r['性別'], race: r['レース'], state: r['状態'], checkedIn: false })) };
     }
     if (!b.pass) throw new Error('合言葉が違います');

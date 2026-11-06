@@ -120,7 +120,6 @@ function show(id){ ['loading','closed','form','confirm','done'].forEach(x => $('
 function renderKids(){
   $('#kids').innerHTML = kids.map((k, i) => {
     const adult = k.school === '成人';
-    const race = raceOf(adult ? '成人' : k.grade, k.sex);
     return `<div class="kid" data-i="${i}">
       <div class="kid-head"><b>${kids.length > 1 ? (i+1) + '人目' : ''}</b>${kids.length > 1 ? `<button type="button" class="del" data-del="${i}">この人を外す</button>` : ''}</div>
       <label class="f">所属
@@ -132,7 +131,6 @@ function renderKids(){
         <select data-k="grade"><option value="">選んでください</option>${GRADES.map(g => `<option value="${g}"${g === k.grade ? ' selected' : ''}>${g.replace('小','小学').replace('中','中学')}年</option>`).join('')}</select></label>`}
       <label class="f">性別</label>
       <div class="seg">${['男子','女子'].map(s => `<button type="button" data-sex="${s}" class="${k.sex === s ? 'on' : ''}">${s}</button>`).join('')}</div>
-      ${race ? `<div class="race">${race}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -188,8 +186,8 @@ $('#form').onsubmit = e => {
   $('#cf-body').innerHTML = `<dl><dt>保護者</dt><dd>${esc(g.name)}(${esc(g.kana)})</dd><dt>電話</dt><dd>${esc(g.tel)}</dd><dt>メール</dt><dd>${esc(g.email)}</dd></dl>`
     + kids.map(k => { const gr = k.school === '成人' ? '成人' : k.grade;
       return `<div class="ticket"><div class="name">${esc(k.name)} <small>${esc(toKata(k.kana))}</small></div>
-        <div class="hint">${esc(k.school === 'その他' ? k.schoolOther : k.school)} ・ ${gr === '成人' ? '成人' : esc(gr.replace('小','小学').replace('中','中学')) + '年'} ・ ${k.sex}</div>
-        <div class="race">${raceOf(gr, k.sex)}</div></div>`; }).join('');
+        <div class="hint">${esc(k.school === 'その他' ? k.schoolOther : k.school)} ・ ${gr === '成人' ? '成人' : esc(gr.replace('小','小学').replace('中','中学')) + '年'} ・ ${k.sex}</div></div>`; }).join('')
+    + '<p class="hint">レースの分け方・距離・スタート時刻は、申込締切のあとに2次要項でお知らせします。</p>';
   $('#err2').textContent = '';
   if (!rid) rid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
   show('confirm');
@@ -202,7 +200,7 @@ $('#send').onclick = async () => {
       kids: kids.map(k => ({ school: k.school, schoolOther: k.schoolOther.trim(), name: k.name.trim(), kana: toKata(k.kana.trim()), grade: k.grade, sex: k.sex })) });
     if (r.token) { location.href = 'mypage.html#t=' + r.token; return; }   // QR・案内はマイページで見せる
     $('#dn-group').textContent = r.group;
-    $('#dn-kids').innerHTML = r.kids.map(k => `<div class="ticket"><div class="name">${esc(k.name)}</div><div class="code">${esc(k.code)}</div><div class="race">${esc(k.race)}</div></div>`).join('');
+    $('#dn-kids').innerHTML = r.kids.map(k => `<div class="ticket"><div class="name">${esc(k.name)}</div><div class="code">${esc(k.code)}</div>${k.race ? `<div class="race">${esc(k.race)}</div>` : ''}</div>`).join('');
     show('done');
   } catch (err) {
     $('#err2').textContent = err.message;
