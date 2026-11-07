@@ -68,17 +68,17 @@ dt{color:var(--muted)} dd{margin:0;word-break:break-all}
   <!-- 入力 -->
   <form id="form" class="hide" novalidate>
     <div class="card">
+      <h2>参加する人 <small>(兄弟姉妹はまとめて申し込めます)</small></h2>
+      <div id="kids"></div>
+      <button type="button" class="add" id="add">＋ 参加する人を追加</button>
+    </div>
+
+    <div class="card">
       <h2>保護者 <small>(成人の方はご本人)</small></h2>
       <label class="f">氏名<input type="text" id="g-name" autocomplete="name" placeholder="忠生 花子"></label>
       <label class="f">フリガナ<input type="text" id="g-kana" placeholder="タダオ ハナコ"></label>
       <label class="f">緊急連絡先の電話番号<input type="tel" id="g-tel" autocomplete="tel" inputmode="tel" placeholder="09012345678"></label>
       <label class="f">メールアドレス<input type="email" id="g-email" autocomplete="email" inputmode="email"></label>
-    </div>
-
-    <div class="card">
-      <h2>参加する人 <small>(兄弟姉妹はまとめて申し込めます)</small></h2>
-      <div id="kids"></div>
-      <button type="button" class="add" id="add">＋ 参加する人を追加</button>
     </div>
 
     <div class="card">
@@ -160,10 +160,6 @@ function guardian(){
 }
 function check(){
   const g = guardian(), m = [];
-  if (!g.name) m.push('保護者の氏名を入れてください');
-  if (!/^[゠-ヿ\s　]+$/.test(g.kana)) m.push('保護者のフリガナをカタカナで入れてください');
-  if (!/^0\d{9,10}$/.test(g.tel.replace(/[^\d]/g, ''))) m.push('電話番号を確認してください');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.email)) m.push('メールアドレスを確認してください');
   kids.forEach((k, i) => {
     const no = kids.length > 1 ? (i+1) + '人目: ' : '';
     if (!k.school) m.push(no + '所属を選んでください');
@@ -173,6 +169,10 @@ function check(){
     if (k.school !== '成人' && !k.grade) m.push(no + '学年を選んでください');
     if (!k.sex) m.push(no + '性別を選んでください');
   });
+  if (!g.name) m.push('保護者の氏名を入れてください');
+  if (!/^[゠-ヿ\s　]+$/.test(g.kana)) m.push('保護者のフリガナをカタカナで入れてください');
+  if (!/^0\d{9,10}$/.test(g.tel.replace(/[^\d]/g, ''))) m.push('電話番号を確認してください');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.email)) m.push('メールアドレスを確認してください');
   if (!$('#agree').checked) m.push('同意にチェックを入れてください');
   return m;
 }
@@ -183,10 +183,10 @@ $('#form').onsubmit = e => {
   $('#err').textContent = m.join('\n');
   if (m.length) return;
   const g = guardian();
-  $('#cf-body').innerHTML = `<dl><dt>保護者</dt><dd>${esc(g.name)}(${esc(g.kana)})</dd><dt>電話</dt><dd>${esc(g.tel)}</dd><dt>メール</dt><dd>${esc(g.email)}</dd></dl>`
-    + kids.map(k => { const gr = k.school === '成人' ? '成人' : k.grade;
+  $('#cf-body').innerHTML = kids.map(k => { const gr = k.school === '成人' ? '成人' : k.grade;
       return `<div class="ticket"><div class="name">${esc(k.name)} <small>${esc(toKata(k.kana))}</small></div>
         <div class="hint">${esc(k.school === 'その他' ? k.schoolOther : k.school)} ・ ${gr === '成人' ? '成人' : esc(gr.replace('小','小学').replace('中','中学')) + '年'} ・ ${k.sex}</div></div>`; }).join('')
+    + `<dl><dt>保護者</dt><dd>${esc(g.name)}(${esc(g.kana)})</dd><dt>電話</dt><dd>${esc(g.tel)}</dd><dt>メール</dt><dd>${esc(g.email)}</dd></dl>`
     + '<p class="hint">レースの分け方・距離・スタート時刻は、申込締切のあとに2次要項でお知らせします。</p>';
   $('#err2').textContent = '';
   if (!rid) rid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
